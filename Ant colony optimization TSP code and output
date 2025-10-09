@@ -1,0 +1,81 @@
+import numpy as np
+import random
+NUM_CITIES = 10
+NUM_ANTS = 20
+NUM_ITERATIONS = 100
+ALPHA = 1.0       
+BETA = 5.0        
+EVAPORATION = 0.5 
+Q = 100     
+np.random.seed(42)
+cities = np.random.rand(NUM_CITIES, 2) * 100  
+dist_matrix = np.sqrt(((cities[:, np.newaxis, :] - cities[np.newaxis, :, :]) ** 2).sum(axis=2))
+pheromone = np.ones((NUM_CITIES, NUM_CITIES))
+best_distance = float('inf')
+best_path = []
+
+for iteration in range(NUM_ITERATIONS):
+    all_paths = []
+    all_distances = []
+
+    for ant in range(NUM_ANTS):
+        path = [random.randint(0, NUM_CITIES - 1)]
+
+        while len(path) < NUM_CITIES:
+            current_city = path[-1]
+            probabilities = []
+            for next_city in range(NUM_CITIES):
+                if next_city not in path:
+                    tau = pheromone[current_city][next_city] ** ALPHA
+                    eta = (1 / dist_matrix[current_city][next_city]) ** BETA
+                    probabilities.append(tau * eta)
+                else:
+                    probabilities.append(0)
+
+            probabilities = np.array(probabilities)
+            probabilities /= probabilities.sum()
+            next_city = np.random.choice(range(NUM_CITIES), p=probabilities)
+            path.append(next_city)
+
+        path.append(path[0])  # Return to starting city
+        distance = sum(dist_matrix[path[i]][path[i + 1]] for i in range(NUM_CITIES))
+        all_paths.append(path)
+        all_distances.append(distance)
+
+        if distance < best_distance:
+            best_distance = distance
+            best_path = path
+
+    # Evaporate pheromone
+    pheromone *= (1 - EVAPORATION)
+
+    # Deposit pheromone
+    for i in range(NUM_ANTS):
+        for j in range(NUM_CITIES):
+            from_city = all_paths[i][j]
+            to_city = all_paths[i][j + 1]
+            pheromone[from_city][to_city] += Q / all_distances[i]
+            pheromone[to_city][from_city] += Q / all_distances[i]  # symmetric
+
+    if iteration % 10 == 0 or iteration == NUM_ITERATIONS - 1:
+        print(f"Iteration {iteration}: Best Distance = {best_distance:.2f}")
+print("\nBest Path Found:")
+print(" -> ".join(map(str, best_path)))
+print(f"Total Distance: {best_distance:.2f}")
+
+OUTPUT:
+Iteration 0: Best Distance = 290.31
+Iteration 10: Best Distance = 290.31
+Iteration 20: Best Distance = 290.31
+Iteration 30: Best Distance = 290.31
+Iteration 40: Best Distance = 290.31
+Iteration 50: Best Distance = 290.31
+Iteration 60: Best Distance = 290.31
+Iteration 70: Best Distance = 290.31
+Iteration 80: Best Distance = 290.31
+Iteration 90: Best Distance = 290.31
+Iteration 99: Best Distance = 290.31
+
+Best Path Found:
+0 -> 4 -> 1 -> 6 -> 9 -> 7 -> 2 -> 8 -> 3 -> 5 -> 0
+Total Distance: 290.31
